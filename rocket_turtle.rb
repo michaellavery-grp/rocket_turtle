@@ -10,6 +10,7 @@ MAX_HEIGHT = Window.height - 10
 TURTLE_COLLISION_SIZE = 40     
 SPEED = 5
 score = 0
+pause = true
 
 # High score tracking
 HIGHSCORE_FILE = "highscores.txt"
@@ -47,8 +48,10 @@ turtle = Rectangle.new(
 # We'll store our decorative turtle shapes here so we can update them each frame.
 $turtle_decorations = []
 
+
+
 # Draw the decorative rocket turtle relative to the given center point.
-def draw_turtle_decorations(cx, cy)
+def draw_turtle_decorations(cx, cy, direction)
   # Remove previous decorations to reduce flicker
   $turtle_decorations.each(&:remove)
   $turtle_decorations.clear
@@ -109,28 +112,38 @@ def draw_turtle_decorations(cx, cy)
     color: 'yellow'
   )
 
-  # --- Turtle Neck and Head ---
+  # --- Turtle Neck and Head Adjusted Based on Direction ---
   neck_width = 8
   neck_height = 12
-  neck_x = cx - neck_width / 2.0
-  neck_y = shell_y - neck_height  # position neck directly above shell
-  $turtle_decorations << Rectangle.new(
-    x: neck_x,
-    y: neck_y,
-    width: neck_width,
-    height: neck_height,
-    color: 'green'
-  )
-
   head_radius = 6
-  head_x = cx
-  head_y = neck_y - head_radius  # head sits above the neck
-  $turtle_decorations << Circle.new(
-    x: head_x,
-    y: head_y,
-    radius: head_radius,
-    color: 'green'
-  )
+  neck_x, neck_y, head_x, head_y = cx, cy, cx, cy
+
+  case direction
+  when :up
+    neck_x = cx - neck_width / 2.0
+    neck_y = shell_y - neck_height
+    head_x = cx
+    head_y = neck_y - head_radius
+  when :down
+    neck_x = cx - neck_width / 2.0
+    neck_y = shell_y + shell_size
+    head_x = cx
+    head_y = neck_y + head_radius
+  when :left
+    neck_x = shell_x - neck_height
+    neck_y = cy - neck_width / 2.0
+    head_x = neck_x - head_radius
+    head_y = cy
+  when :right
+    neck_x = shell_x + shell_size
+    neck_y = cy - neck_width / 2.0
+    head_x = neck_x + head_radius
+    head_y = cy
+  end
+
+  $turtle_decorations << Rectangle.new(x: neck_x, y: neck_y, width: neck_width, height: neck_height, color: 'green')
+  $turtle_decorations << Circle.new(x: head_x, y: head_y, radius: head_radius, color: 'green')
+
 end
 
 # ----------------------------
@@ -154,16 +167,26 @@ on :key_held do |event|
   when 'escape'
     File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
     close
+  when 'space'
+    # Clear instructions when space key is pressed
+    Rednew.remove
+    Blacknew.remove
+    Brownnew.remove
+    Purplenew.remove
+    Yellownew.remove
+    Spacenew.remove
+    pause = false
   end
 end
 
 # ----------------------------
 # Display scoring instructions
-Text.new("Red (Apple) → 100", x: 100, y: 140, size: 20, color: 'red')
-Text.new("Yellow (Banana) → 500", x: 100, y: 170, size: 20, color: 'yellow')
-Text.new("Brown (Poop) [max 10]", x: 100, y: 200, size: 20, color: 'brown')
-Text.new("Purple (Pizza) → 1000", x: 100, y: 230, size: 20, color: 'purple')
-Text.new("Black → Ends game (only 1)", x: 100, y: 260, size: 20, color: 'black')
+Rednew = Text.new("Red (Apple) → 100", x: 100, y: 140, size: 20, color: 'red')
+Yellownew = Text.new("Yellow (Banana) → 500", x: 100, y: 170, size: 20, color: 'yellow')
+Brownnew = Text.new("Brown (Poop) [max 10]", x: 100, y: 200, size: 20, color: 'brown')
+Purplenew = Text.new("Purple (Pizza) → 1000", x: 100, y: 230, size: 20, color: 'purple')
+Blacknew = Text.new("Black → Ends game (only 1)", x: 100, y: 260, size: 20, color: 'black')
+Spacenew = Text.new("Space to Start game", x: 100, y: 290, size: 20, color: 'black')
 
 # ----------------------------
 # Movement speed (pixels per frame)
@@ -193,11 +216,14 @@ object_colors = {
 
 # ----------------------------
 # Update loop: collectible spawning, collision detection, update turtle decorations.
-update do
+update do; unless pause
   # --- Update turtle decorations based on the collision box's center ---
   turtle_center_x = turtle.x + turtle.width / 2.0
   turtle_center_y = turtle.y + turtle.height / 2.0
-  draw_turtle_decorations(turtle_center_x, turtle_center_y)
+  draw_turtle_decorations(turtle_center_x, turtle_center_y, $direction)
+  # ----------------------------
+  # Update loop: Redraw turtle with correct direction
+#  draw_turtle_decorations(turtle.x + turtle.width / 2.0, turtle.y + turtle.height / 2.0, $direction)
 
   # --- Spawn collectibles ---
   if Time.now - last_spawn_time >= spawn_interval
@@ -293,6 +319,7 @@ update do
       when object_colors['brown']
         $brown_collision_count += 1
         Text.new("Poop!", x: 20 + ($brown_collision_count * 40), y: 20, size: 20, color: 'brown')
+        obj.remove # Brown objects never disappear (except the first two poops)
         if $brown_collision_count >= 3
           Text.new("GROSS", x: 200, y: 250, size: 40, color: 'red')
           File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
@@ -319,6 +346,7 @@ update do
     highscore_text.remove
     highscore_text = Text.new("High Score: #{$highest_score}", x: 600, y: 50, size: 20, color: 'blue')
   end
+end
 end
 
 show
