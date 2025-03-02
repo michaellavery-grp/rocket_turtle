@@ -1,6 +1,3 @@
-<details>
-  <summary>Click to Expand</summary>
-
 ````md
 ### 🚀 **Rocket Turtle - Game Instructions** 🐢🔥  
 Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-charged turtle** through a world full of **fruits, obstacles, and hazards!**  
