@@ -35,6 +35,10 @@ $black_spawned = false         # Only allow one black collectible
 $brown_collision_count = 0     # Count brown collisions
 
 # ----------------------------
+# Direction tracking
+$direction = 'up'  
+
+# ----------------------------
 # Create a collision box for the turtle.
 # This box will move with the rocket turtle and be used for collision detection.
 turtle = Rectangle.new(
@@ -113,31 +117,37 @@ def draw_turtle_decorations(cx, cy, direction)
   )
 
   # --- Turtle Neck and Head Adjusted Based on Direction ---
-  neck_width = 8
-  neck_height = 12
-  head_radius = 6
-  neck_x, neck_y, head_x, head_y = cx, cy, cx, cy
+  head_radius = 10
+  #neck_x, neck_y, head_x, head_y = cx, cy, cx, cy
 
   case direction
-  when :up
+  when 'up'
+    neck_width = 12
+    neck_height = 20
     neck_x = cx - neck_width / 2.0
     neck_y = shell_y - neck_height
     head_x = cx
     head_y = neck_y - head_radius
-  when :down
+  when 'down'
+    neck_width = 12
+    neck_height = 20
     neck_x = cx - neck_width / 2.0
     neck_y = shell_y + shell_size
     head_x = cx
-    head_y = neck_y + head_radius
-  when :left
-    neck_x = shell_x - neck_height
-    neck_y = cy - neck_width / 2.0
+    head_y = neck_y + head_radius + neck_height
+  when 'left'
+    neck_width = 20
+    neck_height = 12
+    neck_x = shell_x - neck_width
+    neck_y = cy - neck_height / 2.0
     head_x = neck_x - head_radius
     head_y = cy
-  when :right
+  when 'right'
+    neck_width = 20
+    neck_height = 12
     neck_x = shell_x + shell_size
-    neck_y = cy - neck_width / 2.0
-    head_x = neck_x + head_radius
+    neck_y = cy - neck_height / 2.0
+    head_x = neck_x + neck_height + ( head_radius * 2 )
     head_y = cy
   end
 
@@ -146,36 +156,36 @@ def draw_turtle_decorations(cx, cy, direction)
 
 end
 
-# ----------------------------
-# Direction tracking for movement
-direction = :up  
 
+# ----------------------------
+# Handle Movement & Pause Toggle
 on :key_held do |event|
+  next if pause
+  
   case event.key
   when 'up'
     turtle.y -= SPEED if turtle.y > 0
-    direction = :up
+    $direction = 'up'
   when 'down'
     turtle.y += SPEED if turtle.y + turtle.height < MAX_HEIGHT
-    direction = :down
+    $direction = 'down'
   when 'left'
     turtle.x -= SPEED if turtle.x > 0
-    direction = :left
+    $direction = 'left'
   when 'right'
     turtle.x += SPEED if turtle.x + turtle.width < MAX_WIDTH
-    direction = :right
+    $direction = 'right'
+  end
+end
+
+on :key_down do |event|
+  case event.key
+  when 'space'
+    pause = false
+    [Rednew, Blacknew, Brownnew, Purplenew, Yellownew, Spacenew].each(&:remove)
   when 'escape'
     File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
     close
-  when 'space'
-    # Clear instructions when space key is pressed
-    Rednew.remove
-    Blacknew.remove
-    Brownnew.remove
-    Purplenew.remove
-    Yellownew.remove
-    Spacenew.remove
-    pause = false
   end
 end
 
@@ -186,7 +196,7 @@ Yellownew = Text.new("Yellow (Banana) → 500", x: 100, y: 170, size: 20, color:
 Brownnew = Text.new("Brown (Poop) [max 10]", x: 100, y: 200, size: 20, color: 'brown')
 Purplenew = Text.new("Purple (Pizza) → 1000", x: 100, y: 230, size: 20, color: 'purple')
 Blacknew = Text.new("Black → Ends game (only 1)", x: 100, y: 260, size: 20, color: 'black')
-Spacenew = Text.new("Space to Start game", x: 100, y: 290, size: 20, color: 'black')
+Spacenew = Text.new("Press Space to Start game", x: 100, y: 550, size: 40, color: 'green')
 
 # ----------------------------
 # Movement speed (pixels per frame)
@@ -216,137 +226,168 @@ object_colors = {
 
 # ----------------------------
 # Update loop: collectible spawning, collision detection, update turtle decorations.
-update do; unless pause
-  # --- Update turtle decorations based on the collision box's center ---
-  turtle_center_x = turtle.x + turtle.width / 2.0
-  turtle_center_y = turtle.y + turtle.height / 2.0
-  draw_turtle_decorations(turtle_center_x, turtle_center_y, $direction)
-  # ----------------------------
-  # Update loop: Redraw turtle with correct direction
-#  draw_turtle_decorations(turtle.x + turtle.width / 2.0, turtle.y + turtle.height / 2.0, $direction)
+update do
+  unless pause
+    # --- Update turtle decorations based on the collision box's center ---
+    turtle_center_x = turtle.x + turtle.width / 2.0
+    turtle_center_y = turtle.y + turtle.height / 2.0
+    draw_turtle_decorations(turtle_center_x, turtle_center_y, $direction)
+    # ----------------------------
+    # Update loop: Redraw turtle with correct direction
+    #  draw_turtle_decorations(turtle.x + turtle.width / 2.0, turtle.y + turtle.height / 2.0, $direction)
 
-  # --- Spawn collectibles ---
-  if Time.now - last_spawn_time >= spawn_interval
-    color = ['red', 'yellow', 'brown', 'purple', 'black'].sample
+    # --- Spawn collectibles ---
+    if Time.now - last_spawn_time >= spawn_interval
+      color = ['red', 'yellow', 'brown', 'purple', 'black'].sample
 
-    # Allow one black collectible only
-    if color == 'black' && $black_spawned
-      color = ['red', 'yellow', 'brown', 'purple'].sample
+      # Allow one black collectible only
+      if color == 'black' && $black_spawned
+        color = ['red', 'yellow', 'brown', 'purple'].sample
+      end
+
+      # Only allow 10 brown objects
+      brown_count = collectibles.count { |obj| obj.color == 'brown' }
+      if color == 'brown' && brown_count >= 10
+        color = ['red', 'yellow', 'purple'].sample
+      end
+
+      x_pos = rand(0..(Window.width - object_size))
+      y_pos = rand(0..(Window.height - object_size))
+
+      new_object = case color
+        when 'red'
+          Circle.new(x: x_pos, y: y_pos, radius: object_size / 2, color: 'red')
+        when 'yellow'
+          Rectangle.new(x: x_pos, y: y_pos, width: object_size, height: object_size * 2, color: 'yellow')
+        when 'brown'
+          Square.new(x: x_pos, y: y_pos, size: object_size, color: 'brown')
+        when 'purple'
+          Triangle.new(
+            x1: x_pos, y1: y_pos,
+            x2: x_pos + object_size, y2: y_pos,
+            x3: x_pos + (object_size / 2), y3: y_pos - object_size,
+            color: 'purple'
+          )
+        when 'black'
+          $black_spawned = true
+          Rectangle.new(x: x_pos, y: y_pos, width: object_size * 1.5, height: object_size * 1.5, color: 'black')
+        else
+          nil
+      end
+
+      collectibles.push(new_object) if new_object
+      last_spawn_time = Time.now
+      spawn_interval = [spawn_interval - spawn_decrease_rate, min_spawn_interval].max
     end
 
-    # Only allow 10 brown objects
-    brown_count = collectibles.count { |obj| obj.color == 'brown' }
-    if color == 'brown' && brown_count >= 10
-      color = ['red', 'yellow', 'purple'].sample
-    end
-
-    x_pos = rand(0..(Window.width - object_size))
-    y_pos = rand(0..(Window.height - object_size))
-
-    new_object = case color
-      when 'red'
-        Circle.new(x: x_pos, y: y_pos, radius: object_size / 2, color: 'red')
-      when 'yellow'
-        Rectangle.new(x: x_pos, y: y_pos, width: object_size, height: object_size * 2, color: 'yellow')
-      when 'brown'
-        Square.new(x: x_pos, y: y_pos, size: object_size, color: 'brown')
-      when 'purple'
-        Triangle.new(
-          x1: x_pos, y1: y_pos,
-          x2: x_pos + object_size, y2: y_pos,
-          x3: x_pos + (object_size / 2), y3: y_pos - object_size,
-          color: 'purple'
-        )
-      when 'black'
-        $black_spawned = true
-        Rectangle.new(x: x_pos, y: y_pos, width: object_size * 1.5, height: object_size * 1.5, color: 'black')
+    # --- Collision detection between the turtle collision box and collectibles ---
+    collectibles.dup.each do |obj|
+      # Determine object's bounding box based on its type:
+      if obj.is_a?(Circle)
+        obj_width = obj.radius * 2
+        obj_height = obj.radius * 2
+        obj_x = obj.x - obj.radius
+        obj_y = obj.y - obj.radius
+      elsif obj.is_a?(Triangle)
+        min_x = [obj.x1, obj.x2, obj.x3].min
+        max_x = [obj.x1, obj.x2, obj.x3].max
+        min_y = [obj.y1, obj.y2, obj.y3].min
+        max_y = [obj.y1, obj.y2, obj.y3].max
+        obj_width = max_x - min_x
+        obj_height = max_y - min_y
+        obj_x = min_x
+        obj_y = min_y
+      elsif obj.is_a?(Rectangle)
+        obj_width = obj.width
+        obj_height = obj.height
+        obj_x = obj.x
+        obj_y = obj.y
       else
-        nil
-    end
+        next
+      end
 
-    collectibles.push(new_object) if new_object
-    last_spawn_time = Time.now
-    spawn_interval = [spawn_interval - spawn_decrease_rate, min_spawn_interval].max
-  end
+      # Bounding-box collision check
+      if turtle.x < obj_x + obj_width &&
+        turtle.x + turtle.width > obj_x &&
+        turtle.y < obj_y + obj_height &&
+        turtle.y + turtle.height > obj_y
 
-  # --- Collision detection between the turtle collision box and collectibles ---
-  collectibles.dup.each do |obj|
-    # Determine object's bounding box based on its type:
-    if obj.is_a?(Circle)
-      obj_width = obj.radius * 2
-      obj_height = obj.radius * 2
-      obj_x = obj.x - obj.radius
-      obj_y = obj.y - obj.radius
-    elsif obj.is_a?(Triangle)
-      min_x = [obj.x1, obj.x2, obj.x3].min
-      max_x = [obj.x1, obj.x2, obj.x3].max
-      min_y = [obj.y1, obj.y2, obj.y3].min
-      max_y = [obj.y1, obj.y2, obj.y3].max
-      obj_width = max_x - min_x
-      obj_height = max_y - min_y
-      obj_x = min_x
-      obj_y = min_y
-    elsif obj.is_a?(Rectangle)
-      obj_width = obj.width
-      obj_height = obj.height
-      obj_x = obj.x
-      obj_y = obj.y
-    else
-      next
-    end
-
-    # Bounding-box collision check
-    if turtle.x < obj_x + obj_width &&
-       turtle.x + turtle.width > obj_x &&
-       turtle.y < obj_y + obj_height &&
-       turtle.y + turtle.height > obj_y
-
-      # Collision detected: handle based on object color
-      checkcol = normalize_color(obj.color)
-      case checkcol 
-      when object_colors['red']
-        score +=100
-        obj.remove # Brown objects never disappear
-        collectibles.delete(obj)
-      when object_colors['yellow']
-        score +=500
-        obj.remove # Brown objects never disappear
-        collectibles.delete(obj)
-      when object_colors['purple']
-        score +=1000
-        obj.remove # Brown objects never disappear
-        collectibles.delete(obj)
-      when object_colors['brown']
-        $brown_collision_count += 1
-        Text.new("Poop!", x: 20 + ($brown_collision_count * 40), y: 20, size: 20, color: 'brown')
-        obj.remove # Brown objects never disappear (except the first two poops)
-        if $brown_collision_count >= 3
-          Text.new("GROSS", x: 200, y: 250, size: 40, color: 'red')
+        # Collision detected: handle based on object color
+        checkcol = normalize_color(obj.color)
+        case checkcol 
+        when object_colors['red']
+          score +=100
+          obj.remove # Brown objects never disappear
+          collectibles.delete(obj)
+        when object_colors['yellow']
+          score +=500
+          obj.remove # Brown objects never disappear
+          collectibles.delete(obj)
+        when object_colors['purple']
+          score +=1000
+          obj.remove # Brown objects never disappear
+          collectibles.delete(obj)
+        when object_colors['brown']
+          $brown_collision_count += 1
+          Text.new("Poop!", x: 20 + ($brown_collision_count * 40), y: 20, size: 20, color: 'brown')
+          obj.remove # Brown objects never disappear (except the first two poops)
+          if $brown_collision_count >= 3
+            Text.new("GROSS", x: 200, y: 250, size: 40, color: 'red')
+            File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
+            close
+          end
+        when object_colors['black']
+          Text.new("GAME OVER!", x: 200, y: 250, size: 40, color: 'red')
+          sleep(2)
           File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
           close
         end
-      when object_colors['black']
-        Text.new("GAME OVER!", x: 200, y: 250, size: 40, color: 'red')
-        sleep(2)
-        File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
-        close
+        # Exit loop after processing a single hit to prevent multiple score increments
+        break
       end
-      # Exit loop after processing a single hit to prevent multiple score increments
-      break
+    end
+
+    # Update score display
+    keepscore.remove
+    keepscore = Text.new(score, x: 50, y: 50, size: 40, color: 'green')
+
+    # Update high score if the current score is greater
+    if score > $highest_score
+      $highest_score = score
+      highscore_text.remove
+      highscore_text = Text.new("High Score: #{$highest_score}", x: 600, y: 50, size: 20, color: 'blue')
+    end
+
+    # --- Prevent Immediate Triple Poop Hit ---
+    #if $brown_collision_count > 0
+    #  sleep(0.2)  # Small delay to prevent multiple quick detections
+    #end
+
+    # --- Fix Poop Collision Delay ---
+    if $poop_hit_recently
+      $poop_hit_recently = false  # Reset flag
+    end
+
+    # ----------------------------
+    # Poop Collision Detection Fix
+    if $poop_hit_recently == false
+      # Simulate checking for collision with brown (poop) objects
+      if some_collision_with_poop  # Replace with actual collision detection logic
+        $brown_collision_count += 1
+        Text.new("Poop!", x: 20 + ($brown_collision_count * 40), y: 20, size: 20, color: 'brown')
+
+        if $brown_collision_count >= 3
+          Text.new("GROSS", x: 200, y: 250, size: 40, color: 'red')
+          sleep(2)
+          File.open(HIGHSCORE_FILE, "a") { |file| file.puts score }
+          close
+        end
+
+        $poop_hit_recently = true  # Set flag so sleep(0.2) only happens once per poop hit
+        sleep(0.2)  # Apply delay only for the first hit, not every update
+      end
     end
   end
-
-  # Update score display
-  keepscore.remove
-  keepscore = Text.new(score, x: 50, y: 50, size: 40, color: 'green')
-
-  # Update high score if the current score is greater
-  if score > $highest_score
-    $highest_score = score
-    highscore_text.remove
-    highscore_text = Text.new("High Score: #{$highest_score}", x: 600, y: 50, size: 20, color: 'blue')
-  end
-end
 end
 
 show
