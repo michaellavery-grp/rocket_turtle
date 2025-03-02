@@ -58,3 +58,12 @@ Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-c
 - Install **Ruby2D** with:  
   ```sh
   gem install ruby2d
+
+- Clone the Repository :
+  ```sh
+git clone https://github.com/YOUR_USERNAME/rocket_turtle.git
+cd rocket_turtle
+
+- Run the game :
+ ```sh
+ ruby rocket_turtle.rb
