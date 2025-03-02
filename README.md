@@ -61,8 +61,8 @@ Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-c
 
 - Clone the Repository :
   ```sh
-git clone https://github.com/YOUR_USERNAME/rocket_turtle.git
-cd rocket_turtle
+  git clone https://github.com/YOUR_USERNAME/rocket_turtle.git
+  cd rocket_turtle
 
 - Run the game :
  ```sh
