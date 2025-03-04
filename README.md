@@ -68,7 +68,7 @@ Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-c
  ```sh
  ruby rocket_turtle.rb
 
- ## 📝 **Contributing**
-	-	Fork the repository
-	-	Submit a pull request with your changes
-	-	Feel free to improve the graphics, gameplay, or scoring mechanics!
+### 📝 **Contributing**
+-	Fork the repository
+-	Submit a pull request with your changes
+-	Feel free to improve the graphics, gameplay, or scoring mechanics!
