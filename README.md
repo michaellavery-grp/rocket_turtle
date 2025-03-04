@@ -53,6 +53,13 @@ Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-c
 
 ---
 
+### 📝 **Contributing**
+-	Fork the repository
+-	Submit a pull request with your changes
+-	Feel free to improve the graphics, gameplay, or scoring mechanics!
+
+---
+
 ## 💾 **Installation & Running the Game**
 ### 🛠 **Requirements**
 - Install **Ruby2D** with:  
@@ -66,9 +73,4 @@ Welcome to **Rocket Turtle**, the action-packed game where you pilot a **turbo-c
 
 - Run the game :
  ```sh
- ruby rocket_turtle.rb
-
-### 📝 **Contributing**
--	Fork the repository
--	Submit a pull request with your changes
--	Feel free to improve the graphics, gameplay, or scoring mechanics!
+ ./rocket_turtle.rb
